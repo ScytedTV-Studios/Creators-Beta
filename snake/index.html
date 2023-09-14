@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Snake Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #282c34;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 36px;
+        }
+
+        #game-board {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            border: 1px solid #ffffff;
+            overflow: hidden;
+        }
+
+        .snake-block {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #8bc34a;
+            border-radius: 50%;
+        }
+
+        #food {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #e53935;
+            border-radius: 50%;
+        }
+
+        #score {
+            margin-top: 20px;
+            font-size: 20px;
+        }
+
+        #start-button,
+        #restart-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #2196f3;
+            color: #ffffff;
+            font-size: 18px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #mobile-controls {
+            display: none;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .mobile-control {
+            width: 60px;
+            height: 60px;
+            margin: 0 10px;
+            border-radius: 50%;
+            background-color: #2196f3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        @media only screen and (max-width: 600px) {
+            #game-board {
+                width: 100vw;
+                height: 100vw;
+                max-width: 300px;
+                max-height: 300px;
+            }
+
+            #mobile-controls {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Snake</h1>
+    <div id="game-board"></div>
+    <div id="score">Score: 0</div>
+    <button id="start-button">Start</button>
+    <button id="restart-button" disabled>Restart</button>
+    <div id="mobile-controls">
+        <div class="mobile-control" id="mobile-up">&#8593;</div>
+        <div class="mobile-control" id="mobile-left">&#8592;</div>
+        <div class="mobile-control" id="mobile-down">&#8595;</div>
+        <div class="mobile-control" id="mobile-right">&#8594;</div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var canvasSize = 15;
+            var blockSize = 20;
+            var snake = [{ x: 0, y: 0 }];
+            var direction = 'right';
+            var food = { x: 200, y: 200 };
+            var score = 0;
+            var gameInterval;
+
+            var gameBoard = document.getElementById('game-board');
+            var scoreElement = document.getElementById('score');
+            var startButton = document.getElementById('start-button');
+            var restartButton = document.getElementById('restart-button');
+            var mobileControls = document.getElementById('mobile-controls');
+
+            // Function to draw the game board
+            function drawGameBoard() {
+                gameBoard.innerHTML = '';
+
+                // Draw the snake
+                snake.forEach(function (block) {
+                    var snakeBlock = document.createElement('div');
+                    snakeBlock.className = 'snake-block';
+                    snakeBlock.style.left = block.x + 'px';
+                    snakeBlock.style.top = block.y + 'px';
+                    gameBoard.appendChild(snakeBlock);
+                });
+
+                // Draw the food
+                var foodElement = document.createElement('div');
+                foodElement.id = 'food';
+                foodElement.style.left = food.x + 'px';
+                foodElement.style.top = food.y + 'px';
+                gameBoard.appendChild(foodElement);
+            }
+
+            // Function to update the game state
+            function updateGame() {
+                var head = Object.assign({}, snake[0]);
+
+                // Update the head position based on the current direction
+                switch (direction) {
+                    case 'up':
+                        head.y -= blockSize;
+                        break;
+                    case 'down':
+                        head.y += blockSize;
+                        break;
+                    case 'left':
+                        head.x -= blockSize;
+                        break;
+                    case 'right':
+                        head.x += blockSize;
+                        break;
+                }
+
+                // Check if the snake eats the food
+                if (head.x === food.x && head.y === food.y) {
+                    score++;
+                    generateFood();
+                    updateScore();
+                } else {
+                    snake.pop(); // Remove the tail if not eating the food
+                }
+
+                // Check if the snake hits the wall or itself
+                if (
+                    head.x < 0 ||
+                    head.y < 0 ||
+                    head.x >= canvasSize * blockSize ||
+                    head.y >= canvasSize * blockSize ||
+                    checkCollision(head)
+                ) {
+                    clearInterval(gameInterval);
+                    alert('Game Over!\nScore: ' + score);
+                    return;
+                }
+
+                snake.unshift(head); // Add the new head to the snake
+                drawGameBoard(); // Redraw the game board
+            }
+
+            // Function to update the score display
+            function updateScore() {
+                scoreElement.textContent = 'Score: ' + score;
+            }
+
+            // Function to generate new food randomly
+            function generateFood() {
+                food.x = Math.floor(Math.random() * canvasSize) * blockSize;
+                food.y = Math.floor(Math.random() * canvasSize) * blockSize;
+            }
+
+            // Function to check if the snake collides with itself
+            function checkCollision(head) {
+                for (var i = 1; i < snake.length; i++) {
+                    if (head.x === snake[i].x && head.y === snake[i].y) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // Function to handle key presses for changing the snake direction
+            function handleKeyPress(event) {
+                var key = event.key;
+                if ((key === 'ArrowUp' || key === 'w') && direction !== 'down') {
+                    direction = 'up';
+                } else if ((key === 'ArrowDown' || key === 's') && direction !== 'up') {
+                    direction = 'down';
+                } else if ((key === 'ArrowLeft' || key === 'a') && direction !== 'right') {
+                    direction = 'left';
+                } else if ((key === 'ArrowRight' || key === 'd') && direction !== 'left') {
+                    direction = 'right';
+                }
+            }
+
+            // Function to handle mobile control button clicks
+            function handleMobileControlClick(event) {
+                var id = event.target.id;
+                switch (id) {
+                    case 'mobile-up':
+                        if (direction !== 'down') {
+                            direction = 'up';
+                        }
+                        break;
+                    case 'mobile-down':
+                        if (direction !== 'up') {
+                            direction = 'down';
+                        }
+                        break;
+                    case 'mobile-left':
+                        if (direction !== 'right') {
+                            direction = 'left';
+                        }
+                        break;
+                    case 'mobile-right':
+                        if (direction !== 'left') {
+                            direction = 'right';
+                        }
+                        break;
+                }
+            }
+
+            // Function to start the game
+            function startGame() {
+                drawGameBoard();
+                generateFood();
+                updateScore();
+                gameInterval = setInterval(updateGame, 200);
+                startButton.disabled = true;
+                restartButton.disabled = false;
+            }
+
+            // Function to restart the game
+            function restartGame() {
+                clearInterval(gameInterval);
+                snake = [{ x: 0, y: 0 }];
+                direction = 'right';
+                score = 0;
+                updateScore();
+                startButton.disabled = false;
+                restartButton.disabled = true;
+                drawGameBoard();
+            }
+
+            // Event listener for key presses
+            document.addEventListener('keydown', handleKeyPress);
+
+            // Event listener for start button click
+            startButton.addEventListener('click', startGame);
+
+            // Event listener for restart button click
+            restartButton.addEventListener('click', restartGame);
+
+            // Event listener for mobile control button clicks
+            mobileControls.addEventListener('touchstart', handleMobileControlClick);
+
+            // Check if the device is a mobile device
+            var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+            // Show or hide mobile controls based on device type
+            if (isMobile) {
+                mobileControls.style.display = 'flex';
+            } else {
+                mobileControls.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
